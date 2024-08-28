@@ -1,3 +1,4 @@
+//Criado através do SQL
 CREATE TABLE IF NOT EXISTS `NovoBanco`.`produtos_1` (`COL 1` varchar(6), `COL 2` varchar(4), `COL 3` varchar(5), `COL 4` varchar(3)) DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 INSERT INTO `NovoBanco`.`produtos_1` (`COL 1`, `COL 2`, `COL 3`, `COL 4`);
@@ -12,3 +13,11 @@ VALUES  ('codigo', 'nome', 'valor', 'qtd'),
         ('898', 'h', '17', '7'), 
         ('908', 'i', '18', '9'), 
         ('101', 'j', '19', '5');
+
+//Criação pelo Bulk
+BULK INSERT produtos_1
+FROM 'alun2210478300045/downloads/produtos.csv'
+WITH (
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '\n'
+);
