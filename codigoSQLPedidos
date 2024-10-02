@@ -1,3 +1,4 @@
+Criaçao da tabela temporária
 CREATE TABLE tabPedidoTemp(
 codigoPedido VARCHAR(10) PRIMARY KEY ,
 dataPedido DATE,
@@ -15,6 +16,8 @@ UF VARCHAR(2),
 pais VARCHAR(20)
 );
 
+
+//Importação do csv
 \copy usuarios(
 CodigoPedido,dataPedido,
 UPC,
@@ -32,3 +35,52 @@ pais)
 FROM 'D:/Juan/Downloads/pedidos.csv'
 DELIMITER ','
 CSV HEADER;
+
+//Criacao das tabelas
+CREATE TABLE itensPedido (
+    id SERIAL PRIMARY KEY,
+    codigoPedido VARCHAR(10) NOT NULL,
+    UPC INT NOT NULL,
+    nome VARCHAR(50),
+    qtd INT NOT NULL,
+    valor INT NOT NULL,
+    FOREIGN KEY (codigoPedido) REFERENCES tabPedidoTemp(codigoPedido) ON DELETE CASCADE
+);
+
+
+CREATE TABLE clientes (
+    codigoComprador SERIAL PRIMARY KEY,
+    nomeComprador VARCHAR(50) NOT NULL,
+    email VARCHAR(50) UNIQUE NOT NULL,
+    endereco VARCHAR(100),
+    cep VARCHAR(10),
+    UF VARCHAR(2),
+    pais VARCHAR(20)
+);
+
+
+CREATE TABLE pedidos (
+    codigoPedido VARCHAR(10) PRIMARY KEY,
+    dataPedido DATE NOT NULL,
+    frete INT,
+    codigoComprador INT,
+    FOREIGN KEY (codigoComprador) REFERENCES clientes(codigoComprador) ON DELETE CASCADE
+);
+
+
+Inserção nas tabelas:
+INSERT INTO clientes (nomeComprador, email, endereco, cep, UF, pais)
+SELECT DISTINCT nomeComprador, email, endereco, cep, UF, pais
+FROM tabPedidoTemp
+WHERE email IS NOT NULL;
+
+INSERT INTO pedidos (codigoPedido, dataPedido, frete, codigoComprador)
+SELECT t.codigoPedido, t.dataPedido, t.frete,
+       c.codigoComprador
+FROM tabPedidoTemp t
+JOIN clientes c ON t.nomeComprador = c.nomeComprador AND t.email = c.email;
+
+INSERT INTO itensPedido (codigoPedido, UPC, nome, qtd, valor)
+SELECT t.codigoPedido, t.UPC, t.nome, t.qtd, t.valor
+FROM tabPedidoTemp t
+JOIN pedidos p ON t.codigoPedido = p.codigoPedido;
