@@ -67,6 +67,22 @@ CREATE TABLE pedidos (
     FOREIGN KEY (codigoComprador) REFERENCES clientes(codigoComprador) ON DELETE CASCADE
 );
 
+CREATE TABLE produto (
+    codigoProduto SERIAL PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    descricao TEXT,
+    preco DECIMAL(10, 2) NOT NULL,
+    UPC INT UNIQUE NOT NULL
+);
+
+CREATE TABLE estoque (
+    id SERIAL PRIMARY KEY,
+    codigoProduto INT NOT NULL,
+    quantidade INT NOT NULL,
+    FOREIGN KEY (codigoProduto) REFERENCES produto(codigoProduto) ON DELETE CASCADE
+);
+
+
 
 Inserção nas tabelas:
 INSERT INTO clientes (nomeComprador, email, endereco, cep, UF, pais)
@@ -84,3 +100,66 @@ INSERT INTO itensPedido (codigoPedido, UPC, nome, qtd, valor)
 SELECT t.codigoPedido, t.UPC, t.nome, t.qtd, t.valor
 FROM tabPedidoTemp t
 JOIN pedidos p ON t.codigoPedido = p.codigoPedido;
+
+INSERT INTO produto (UPC, nome, valor)
+SELECT DISTINCT UPC, nome, valor
+FROM tabPedidoTemp;
+
+INSERT INTO estoque (UPC, qtd)
+SELECT DISTINCT UPC, qtd
+FROM tabPedidoTemp;
+
+//Procedure
+
+CREATE OR REPLACE PROCEDURE TransferirDadosPedido()
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Inserção na tabela clientes
+    INSERT INTO clientes (nomeComprador, email, endereco, cep, UF, pais)
+    SELECT DISTINCT nomeComprador, email, endereco, cep, UF, pais
+    FROM tabPedidoTemp
+    WHERE email IS NOT NULL
+    ON CONFLICT (email) DO NOTHING; -- Evitar duplicatas de clientes com o mesmo email
+
+    -- Inserção na tabela pedidos
+    INSERT INTO pedidos (codigoPedido, dataPedido, frete, codigoComprador)
+    SELECT t.codigoPedido, t.dataPedido, t.frete, c.codigoComprador
+    FROM tabPedidoTemp t
+    JOIN clientes c ON t.nomeComprador = c.nomeComprador AND t.email = c.email
+    ON CONFLICT (codigoPedido) DO NOTHING; -- Evitar duplicatas de pedidos
+
+    -- Inserção na tabela itensPedido, priorizando produtos em estoque e com maior valor
+    INSERT INTO itensPedido (codigoPedido, UPC, nome, qtd, valor)
+    SELECT t.codigoPedido, t.UPC, t.nome, t.qtd, t.valor
+    FROM tabPedidoTemp t
+    JOIN pedidos p ON t.codigoPedido = p.codigoPedido
+    JOIN estoque e ON t.UPC = e.UPC -- Verifica se o produto já está no estoque
+    WHERE t.valor = (
+        SELECT MAX(t2.valor)
+        FROM tabPedidoTemp t2
+        WHERE t2.UPC = t.UPC
+    ) -- Prioriza o produto com maior valor
+    ON CONFLICT (codigoPedido, UPC) DO NOTHING; -- Evitar duplicatas de itens de pedido
+
+    -- Inserção na tabela produto, apenas se o produto já está no estoque
+    INSERT INTO produto (UPC, nome, valor)
+    SELECT DISTINCT t.UPC, t.nome, t.valor
+    FROM tabPedidoTemp t
+    JOIN estoque e ON t.UPC = e.UPC -- Garante que o produto só será inserido se já existe no estoque
+    WHERE t.valor = (
+        SELECT MAX(t2.valor)
+        FROM tabPedidoTemp t2
+        WHERE t2.UPC = t.UPC
+    ) -- Prioriza o produto com maior valor
+    ON CONFLICT (UPC) DO NOTHING; -- Evitar duplicatas de produtos
+
+    -- Inserção na tabela estoque, mantendo apenas os produtos existentes
+    INSERT INTO estoque (UPC, qtd)
+    SELECT DISTINCT t.UPC, t.qtd
+    FROM tabPedidoTemp t
+    JOIN estoque e ON t.UPC = e.UPC -- Apenas inserir se o produto já está no estoque
+    ON CONFLICT (UPC) DO NOTHING; -- Evitar duplicatas no estoque
+END;
+$$;
+
