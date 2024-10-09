@@ -1,175 +1,133 @@
-Criaçao da tabela temporária
-CREATE TABLE tabPedidoTemp(
-codigoPedido VARCHAR(10) PRIMARY KEY ,
-dataPedido DATE,
-UPC INT,
-nome VARCHAR(50),
-qtd INT,
-valor INT,
-frete INT,
-email VARCHAR(50),
-codigoComprador INT,
-nomeComprador VARCHAR(50),
-endereco VARCHAR(100),
-cep INT,
-UF VARCHAR(2),
-pais VARCHAR(20)
-);
+criação tabela temporária
 
-
-//Importação do csv
-\copy usuarios(
-CodigoPedido,dataPedido,
-UPC,
-nome,
-qtd ,
-valor,
-frete,
-email,
-codigoComprador,
-nomeComprador,
-endereco,
-cep ,
-UF ,
-pais)
-FROM 'D:/Juan/Downloads/pedidos.csv'
-DELIMITER ','
-CSV HEADER;
-
-//Criacao das tabelas
-CREATE TABLE itensPedido (
-    id SERIAL PRIMARY KEY,
-    codigoPedido VARCHAR(10) NOT NULL,
-    UPC INT NOT NULL,
-    nome VARCHAR(50),
-    qtd INT NOT NULL,
-    valor INT NOT NULL,
-    FOREIGN KEY (codigoPedido) REFERENCES tabPedidoTemp(codigoPedido) ON DELETE CASCADE
-);
-
-
-CREATE TABLE clientes (
-    codigoComprador SERIAL PRIMARY KEY,
-    nomeComprador VARCHAR(50) NOT NULL,
-    email VARCHAR(50) UNIQUE NOT NULL,
-    endereco VARCHAR(100),
+CREATE TEMPORARY TABLE tabPedidoTemp (
+    codigoPedido VARCHAR(50),
+    dataPedido DATE,
+    sku VARCHAR(50),
+    UPC VARCHAR(50),
+    nome VARCHAR(100),
+    qtd INT,
+    valor DECIMAL(10, 2),
+    frete DECIMAL(10, 2),
+    email VARCHAR(100),
+    codigoComprador VARCHAR(50),
+    nomeComprador VARCHAR(100),
+    endereco VARCHAR(255),
     cep VARCHAR(10),
     UF VARCHAR(2),
-    pais VARCHAR(20)
+    pais VARCHAR(50)
 );
 
+importação do pedido
+\\copy public.tabpedidotemp (codigopedido, datapedido, sku, upc, nome, qtd, valor, frete, email, codigocomprador, nomecomprador, endereco, cep, uf, pais) FROM 'D:/Juan/Nova pasta/pedidos.txt' DELIMITER ';' ;
 
-CREATE TABLE pedidos (
-    codigoPedido VARCHAR(10) PRIMARY KEY,
-    dataPedido DATE NOT NULL,
-    frete INT,
-    codigoComprador INT,
-    FOREIGN KEY (codigoComprador) REFERENCES clientes(codigoComprador) ON DELETE CASCADE
+
+CREATE TABLE cliente (
+    codigoComprador INT PRIMARY KEY,
+    nomeComprador VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    endereco VARCHAR(255),
+    cep VARCHAR(10),
+    UF VARCHAR(2),
+    pais VARCHAR(50)
 );
-
-CREATE TABLE produto (
-    codigoProduto SERIAL PRIMARY KEY,
+CREATE TABLE produtos (
+    sku VARCHAR(50) PRIMARY KEY,
+    UPC VARCHAR(50),
     nome VARCHAR(100) NOT NULL,
-    descricao TEXT,
-    preco DECIMAL(10, 2) NOT NULL,
-    UPC INT UNIQUE NOT NULL
+    valor DECIMAL(10, 2) NOT NULL
 );
-
-CREATE TABLE itensPedido (
-    id SERIAL PRIMARY KEY,               
-    codigoPedido VARCHAR(10),
-    SKU VARCHAR(50),                     
-    nomeProduto VARCHAR(50),             
-    quantidade INT,                    
-    preco DECIMAL(10, 2)               
-);
-
-
 CREATE TABLE estoque (
-    id SERIAL PRIMARY KEY,
-    codigoProduto INT NOT NULL,
-    quantidade INT NOT NULL,
-    FOREIGN KEY (codigoProduto) REFERENCES produto(codigoProduto) ON DELETE CASCADE
+    sku VARCHAR(50),
+    qtd INT NOT NULL,
+    FOREIGN KEY (sku) REFERENCES produtos(sku)
+);
+CREATE TABLE pedido (
+    codigoPedido VARCHAR(50) PRIMARY KEY,
+    dataPedido DATE NOT NULL,
+    codigoComprador INT,
+    valorTotal DECIMAL(10, 2),
+    frete DECIMAL(10, 2),
+    FOREIGN KEY (codigoComprador) REFERENCES cliente(codigoComprador)
+);
+CREATE TABLE itemPedido (
+    codigoPedido VARCHAR(50),
+    sku VARCHAR(50),
+    qtd INT NOT NULL,
+    valor DECIMAL(10, 2) NOT NULL,
+    PRIMARY KEY (codigoPedido, sku),
+    FOREIGN KEY (codigoPedido) REFERENCES pedido(codigoPedido),
+    FOREIGN KEY (sku) REFERENCES produtos(sku)
+);
+CREATE TABLE compra (
+    codigoPedido VARCHAR(50),
+    codigoComprador INT,
+    dataCompra DATE NOT NULL,
+    valorTotal DECIMAL(10, 2),
+    PRIMARY KEY (codigoPedido, codigoComprador),
+    FOREIGN KEY (codigoPedido) REFERENCES pedido(codigoPedido),
+    FOREIGN KEY (codigoComprador) REFERENCES cliente(codigoComprador)
+);
+CREATE TABLE entrega (
+    codigoPedido VARCHAR(50),
+    enderecoEntrega VARCHAR(255),
+    cep VARCHAR(10),
+    UF VARCHAR(2),
+    pais VARCHAR(50),
+    PRIMARY KEY (codigoPedido),
+    FOREIGN KEY (codigoPedido) REFERENCES pedido(codigoPedido)
 );
 
+INSERT INTO cliente (codigoComprador, nomeComprador, email, endereco, cep, UF, pais)
+SELECT DISTINCT codigoComprador, nomeComprador, email, endereco, cep, UF, pais
+FROM tabPedidoTemp;
 
+INSERT INTO produtos (sku, UPC, nome, valor)
+SELECT DISTINCT sku, UPC, nome, valor
+FROM tabPedidoTemp;
 
-Inserção nas tabelas:
-INSERT INTO clientes (nomeComprador, email, endereco, cep, UF, pais)
-SELECT DISTINCT nomeComprador, email, endereco, cep, UF, pais
+INSERT INTO estoque (sku, qtd)
+SELECT sku, SUM(qtd) 
 FROM tabPedidoTemp
-WHERE email IS NOT NULL;
+GROUP BY sku;
 
-INSERT INTO pedidos (codigoPedido, dataPedido, frete, codigoComprador)
-SELECT t.codigoPedido, t.dataPedido, t.frete,
-       c.codigoComprador
-FROM tabPedidoTemp t
-JOIN clientes c ON t.nomeComprador = c.nomeComprador AND t.email = c.email;
 
-INSERT INTO itensPedido (codigoPedido, UPC, nome, qtd, valor)
-SELECT t.codigoPedido, t.UPC, t.nome, t.qtd, t.valor
-FROM tabPedidoTemp t
-JOIN pedidos p ON t.codigoPedido = p.codigoPedido;
+INSERT INTO pedido (codigoPedido, dataPedido, codigoComprador, valorTotal, frete)
+SELECT DISTINCT codigoPedido, dataPedido, codigoComprador, SUM(valor * qtd), frete
+FROM tabPedidoTemp
+GROUP BY codigoPedido, dataPedido, codigoComprador, frete;
 
-INSERT INTO produto (UPC, nome, valor)
-SELECT DISTINCT UPC, nome, valor
-FROM tabPedidoTemp;
+CREATE OR REPLACE PROCEDURE ProcessarPedidosParaEntrega()
+LANGUAGE plpgsql AS
+$$
+DECLARE
+    pedido_record RECORD;                -- Variável para armazenar o registro do pedido
+    pedido_cursor CURSOR FOR              -- Cursor para selecionar os pedidos ordenados
+        SELECT p.codigoPedido, p.codigoComprador, SUM(i.qtd * i.valor) AS valor_total
+        FROM pedido p
+        JOIN itemPedido i ON p.codigoPedido = i.codigoPedido
+        WHERE i.sku IN (SELECT sku FROM estoque WHERE qtd > 0)  -- Verificar se há estoque
+        GROUP BY p.codigoPedido, p.codigoComprador
+        ORDER BY valor_total DESC;      -- Ordenar pelo maior valor
 
-INSERT INTO estoque (UPC, qtd)
-SELECT DISTINCT UPC, qtd
-FROM tabPedidoTemp;
-
-//Procedure
-
-CREATE OR REPLACE PROCEDURE TransferirDadosPedido()
-LANGUAGE plpgsql
-AS $$
 BEGIN
-    -- Inserção na tabela clientes
-    INSERT INTO clientes (nomeComprador, email, endereco, cep, UF, pais)
-    SELECT DISTINCT nomeComprador, email, endereco, cep, UF, pais
-    FROM tabPedidoTemp
-    WHERE email IS NOT NULL
-    ON CONFLICT (email) DO NOTHING; -- Evitar duplicatas de clientes com o mesmo email
+    OPEN pedido_cursor;                  -- Abrir o cursor
 
-    -- Inserção na tabela pedidos
-    INSERT INTO pedidos (codigoPedido, dataPedido, frete, codigoComprador)
-    SELECT t.codigoPedido, t.dataPedido, t.frete, c.codigoComprador
-    FROM tabPedidoTemp t
-    JOIN clientes c ON t.nomeComprador = c.nomeComprador AND t.email = c.email
-    ON CONFLICT (codigoPedido) DO NOTHING; -- Evitar duplicatas de pedidos
+    LOOP
+        FETCH pedido_cursor INTO pedido_record; -- Obter o próximo registro do cursor
+        EXIT WHEN NOT FOUND;             -- Sair do loop se não houver mais registros
 
-    -- Inserção na tabela itensPedido, priorizando produtos em estoque e com maior valor
-    INSERT INTO itensPedido (codigoPedido, UPC, nome, qtd, valor)
-    SELECT t.codigoPedido, t.UPC, t.nome, t.qtd, t.valor
-    FROM tabPedidoTemp t
-    JOIN pedidos p ON t.codigoPedido = p.codigoPedido
-    JOIN estoque e ON t.UPC = e.UPC -- Verifica se o produto já está no estoque
-    WHERE t.valor = (
-        SELECT MAX(t2.valor)
-        FROM tabPedidoTemp t2
-        WHERE t2.UPC = t.UPC
-    ) -- Prioriza o produto com maior valor
-    ON CONFLICT (codigoPedido, UPC) DO NOTHING; -- Evitar duplicatas de itens de pedido
+        -- Aqui você pode fazer a lógica necessária para processar o pedido
+        RAISE NOTICE 'Processando pedido: %, Comprador: %, Valor: %', 
+                     pedido_record.codigoPedido, 
+                     pedido_record.codigoComprador, 
+                     pedido_record.valor_total;
 
-    -- Inserção na tabela produto, apenas se o produto já está no estoque
-    INSERT INTO produto (UPC, nome, valor)
-    SELECT DISTINCT t.UPC, t.nome, t.valor
-    FROM tabPedidoTemp t
-    JOIN estoque e ON t.UPC = e.UPC -- Garante que o produto só será inserido se já existe no estoque
-    WHERE t.valor = (
-        SELECT MAX(t2.valor)
-        FROM tabPedidoTemp t2
-        WHERE t2.UPC = t.UPC
-    ) -- Prioriza o produto com maior valor
-    ON CONFLICT (UPC) DO NOTHING; -- Evitar duplicatas de produtos
+        -- (Adicione sua lógica de processamento de pedido aqui, como atualizar status, etc.)
 
-    -- Inserção na tabela estoque, mantendo apenas os produtos existentes
-    INSERT INTO estoque (UPC, qtd)
-    SELECT DISTINCT t.UPC, t.qtd
-    FROM tabPedidoTemp t
-    JOIN estoque e ON t.UPC = e.UPC -- Apenas inserir se o produto já está no estoque
-    ON CONFLICT (UPC) DO NOTHING; -- Evitar duplicatas no estoque
+    END LOOP;
+
+    CLOSE pedido_cursor;                 -- Fechar o cursor
 END;
 $$;
 
