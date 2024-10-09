@@ -117,17 +117,34 @@ BEGIN
         FETCH pedido_cursor INTO pedido_record; -- Obter o próximo registro do cursor
         EXIT WHEN NOT FOUND;             -- Sair do loop se não houver mais registros
 
-        -- Aqui você pode fazer a lógica necessária para processar o pedido
-        RAISE NOTICE 'Processando pedido: %, Comprador: %, Valor: %', 
+        -- 1. Verificar disponibilidade dos itens no estoque
+        IF EXISTS (SELECT 1 
+                   FROM itemPedido i 
+                   WHERE i.codigoPedido = pedido_record.codigoPedido 
+                     AND i.sku IN (SELECT sku FROM estoque WHERE qtd <= 0)) THEN
+            RAISE NOTICE 'Pedido % não pode ser entregue, itens não disponíveis no estoque.', 
+                         pedido_record.codigoPedido;
+            CONTINUE;                     -- Pular para o próximo pedido
+        END IF;
+
+        -- 2. Atualizar o status do pedido para 'Em Entrega'
+        UPDATE pedido 
+        SET status = 'Em Entrega' 
+        WHERE codigoPedido = pedido_record.codigoPedido;
+
+        -- 3. Atualizar o estoque
+        UPDATE estoque e
+        SET qtd = e.qtd - (SELECT i.qtd FROM itemPedido i WHERE i.codigoPedido = pedido_record.codigoPedido AND i.sku = e.sku)
+        WHERE e.sku IN (SELECT sku FROM itemPedido WHERE codigoPedido = pedido_record.codigoPedido);
+
+        RAISE NOTICE 'Pedido % processado com sucesso. Comprador: %, Valor Total: %', 
                      pedido_record.codigoPedido, 
                      pedido_record.codigoComprador, 
                      pedido_record.valor_total;
-
-        -- (Adicione sua lógica de processamento de pedido aqui, como atualizar status, etc.)
-
     END LOOP;
 
     CLOSE pedido_cursor;                 -- Fechar o cursor
 END;
 $$;
+
 
