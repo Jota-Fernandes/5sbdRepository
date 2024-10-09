@@ -1,0 +1,29 @@
+//Importação do csv
+\copy usuarios(
+CodigoPedido,dataPedido,
+UPC,
+nome,
+qtd ,
+valor,
+frete,
+email,
+codigoComprador,
+nomeComprador,
+endereco,
+cep ,
+UF ,
+pais)
+FROM 'D:/Juan/Downloads/pedidos.csv'
+DELIMITER ','
+CSV HEADER;
+
+//Criacao das tabelas
+CREATE TABLE itensPedido (
+    id SERIAL PRIMARY KEY,
+    codigoPedido VARCHAR(10) NOT NULL,
+    UPC INT NOT NULL,
+    nome VARCHAR(50),
+    qtd INT NOT NULL,
+    valor INT NOT NULL,
+    FOREIGN KEY (codigoPedido) REFERENCES tabPedidoTemp(codigoPedido) ON DELETE CASCADE
+);
