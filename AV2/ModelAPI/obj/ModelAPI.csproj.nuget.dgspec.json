@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\PHCDESK02\\Juan\\college\\5sbdRepository\\ModelAPI\\ModelAPI.csproj": {}
+    "C:\\Users\\PHCDESK02\\Juan\\college\\5sbdRepository\\AV2\\ModelAPI\\ModelAPI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\PHCDESK02\\Juan\\college\\5sbdRepository\\ModelAPI\\ModelAPI.csproj": {
+    "C:\\Users\\PHCDESK02\\Juan\\college\\5sbdRepository\\AV2\\ModelAPI\\ModelAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\PHCDESK02\\Juan\\college\\5sbdRepository\\ModelAPI\\ModelAPI.csproj",
+        "projectUniqueName": "C:\\Users\\PHCDESK02\\Juan\\college\\5sbdRepository\\AV2\\ModelAPI\\ModelAPI.csproj",
         "projectName": "ModelAPI",
-        "projectPath": "C:\\Users\\PHCDESK02\\Juan\\college\\5sbdRepository\\ModelAPI\\ModelAPI.csproj",
+        "projectPath": "C:\\Users\\PHCDESK02\\Juan\\college\\5sbdRepository\\AV2\\ModelAPI\\ModelAPI.csproj",
         "packagesPath": "C:\\Users\\PHCDESK02\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\PHCDESK02\\Juan\\college\\5sbdRepository\\ModelAPI\\obj\\",
+        "outputPath": "C:\\Users\\PHCDESK02\\Juan\\college\\5sbdRepository\\AV2\\ModelAPI\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\PHCDESK02\\AppData\\Roaming\\NuGet\\NuGet.Config",

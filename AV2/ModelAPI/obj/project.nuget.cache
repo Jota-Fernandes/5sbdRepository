@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "iy/GM7twxeY=",
+  "dgSpecHash": "btdCsB6/yAg=",
   "success": true,
-  "projectFilePath": "C:\\Users\\PHCDESK02\\Juan\\college\\5sbdRepository\\ModelAPI\\ModelAPI.csproj",
+  "projectFilePath": "C:\\Users\\PHCDESK02\\Juan\\college\\5sbdRepository\\AV2\\ModelAPI\\ModelAPI.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\PHCDESK02\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\PHCDESK02\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",
