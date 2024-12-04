@@ -24,10 +24,10 @@ namespace ModelAPI.Controllers
             return Ok(obj);
         }
 
-        [HttpGet]
+        [HttpGet("Apresentar/{nome}")]
         public IActionResult Apresentar(string nome)
         {
-            var mensagem = $"{nome}";
+            var mensagem = $"Seja bem vindo{nome}";
             return Ok(new {mensagem});
         }
     }
